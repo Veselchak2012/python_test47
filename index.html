@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Python Тренажер</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@700;900&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0c0e16;
+  --surf: #131620;
+  --surf2: #181c2a;
+  --border: #21263a;
+  --border2: #2d3350;
+  --accent: #4f8ef7;
+  --violet: #9b7ff4;
+  --green: #2ecc8f;
+  --red: #f16b6b;
+  --yellow: #f5c542;
+  --text: #dce4f5;
+  --muted: #5a6380;
+  --muted2: #8a95b0;
+  --editor-bg: #0d1017;
+  --editor-text: #dce4f5;
+  --editor-placeholder: #2a3050;
+
+  /* syntax colors dark */
+}
+html.light {
+  --bg: #f0f2f8;
+  --surf: #ffffff;
+  --surf2: #f5f7fc;
+  --border: #dde2f0;
+  --border2: #c8cfe8;
+  --accent: #2563eb;
+  --violet: #7c3aed;
+  --green: #059669;
+  --red: #dc2626;
+  --yellow: #d97706;
+  --text: #1e2340;
+  --muted: #8892b0;
+  --muted2: #5a6480;
+  --editor-bg: #f8f9ff;
+  --editor-text: #1e2340;
+  --editor-placeholder: #b0bbd8;
+
+  /* syntax colors light */
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body {
+  font-family:'Manrope',sans-serif;
+  background:var(--bg); color:var(--text);
+  min-height:100vh;
+  transition: background .3s, color .3s;
+}
+body::before {
+  content:''; position:fixed; inset:0;
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 0%, rgba(79,142,247,.07) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 80% 100%, rgba(155,127,244,.06) 0%, transparent 70%);
+  pointer-events:none; z-index:0;
+}
+.app { display:flex; min-height:100vh; position:relative; z-index:1; }
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width:260px; flex-shrink:0;
+  background:var(--surf); border-right:1px solid var(--border);
+  display:flex; flex-direction:column;
+  position:sticky; top:0; height:100vh; overflow-y:auto;
+  transition: background .3s, border-color .3s;
+}
+.sidebar-header { padding:24px 20px 16px; border-bottom:1px solid var(--border); }
+.logo {
+  font-family:'Unbounded',sans-serif; font-size:15px; font-weight:900;
+  background:linear-gradient(135deg,var(--accent),var(--violet));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  margin-bottom:16px;
+}
+.score-widget {
+  background:var(--surf2); border:1px solid var(--border);
+  border-radius:14px; padding:14px 16px;
+  transition: background .3s, border-color .3s;
+}
+.score-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.score-label { font-size:11px; color:var(--muted); letter-spacing:.8px; text-transform:uppercase; }
+.score-val {
+  font-family:'Unbounded',sans-serif; font-size:22px; font-weight:900;
+  background:linear-gradient(135deg,var(--green),var(--accent));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.score-max { font-size:13px; color:var(--muted); }
+.prog-track { height:5px; background:var(--border); border-radius:3px; overflow:hidden; }
+.prog-fill {
+  height:100%; background:linear-gradient(90deg,var(--accent),var(--green));
+  border-radius:3px; transition:width .6s cubic-bezier(.34,1.56,.64,1); width:0%;
+}
+.nav-list { padding:12px 10px; flex:1; }
+.nav-item {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 12px; border-radius:10px;
+  cursor:pointer; margin-bottom:4px;
+  border:1px solid transparent;
+  font-size:13px; font-weight:500; color:var(--muted2);
+  transition: background .15s, border-color .15s, color .15s;
+}
+.nav-item:hover { background:var(--surf2); color:var(--text); }
+.nav-item.active { background:rgba(79,142,247,.12); border-color:rgba(79,142,247,.25); color:var(--accent); }
+.nav-item.solved { color:var(--green); }
+.nav-item.solved.active { background:rgba(46,204,143,.1); border-color:rgba(46,204,143,.25); }
+.nav-num {
+  font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:600;
+  width:22px; height:22px; border-radius:6px;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--border); flex-shrink:0;
+  transition: background .3s, color .3s;
+}
+.nav-item.solved .nav-num { background:rgba(46,204,143,.15); color:var(--green); }
+.nav-item.active .nav-num { background:rgba(79,142,247,.2); color:var(--accent); }
+.nav-title { flex:1; line-height:1.3; font-size:12px; }
+.nav-pts { font-size:11px; font-family:'JetBrains Mono',monospace; }
+.nav-pts.solved { color:var(--green); }
+
+/* ── MAIN ── */
+.main { flex:1; display:flex; flex-direction:column; min-width:0; }
+.topbar {
+  display:flex; align-items:center; gap:16px;
+  padding:18px 32px; border-bottom:1px solid var(--border);
+  background:var(--surf); flex-shrink:0;
+  transition: background .3s, border-color .3s;
+}
+.task-badge {
+  font-family:'Unbounded',sans-serif; font-size:10px; font-weight:700;
+  color:var(--accent); background:rgba(79,142,247,.12);
+  border:1px solid rgba(79,142,247,.2);
+  border-radius:8px; padding:4px 12px; letter-spacing:.8px;
+  transition: color .3s, background .3s, border-color .3s;
+}
+.task-name { font-size:15px; font-weight:700; flex:1; }
+.pts-badge {
+  font-size:12px; font-weight:700; color:var(--yellow);
+  background:rgba(245,197,66,.1); border:1px solid rgba(245,197,66,.2);
+  border-radius:8px; padding:4px 12px;
+  transition: color .3s, background .3s;
+}
+.btn-theme {
+  display:flex; align-items:center; gap:6px;
+  background:var(--surf2); border:1px solid var(--border);
+  color:var(--muted2); cursor:pointer;
+  font-family:'Manrope',sans-serif; font-size:12px; font-weight:600;
+  padding:6px 13px; border-radius:8px; white-space:nowrap;
+  transition: all .2s;
+}
+.btn-theme:hover { border-color:var(--accent); color:var(--accent); }
+
+/* ── DESCRIPTION ── */
+.content { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.desc-panel {
+  padding:28px 32px 20px; border-bottom:1px solid var(--border); flex-shrink:0;
+  transition: border-color .3s;
+}
+.desc-text { font-size:14px; line-height:1.8; color:var(--muted2); max-width:700px; }
+.desc-text b { color:var(--text); }
+.desc-text code {
+  font-family:'JetBrains Mono',monospace; font-size:12px;
+  background:rgba(79,142,247,.12); color:var(--accent);
+  border-radius:4px; padding:1px 6px;
+}
+.examples { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
+.example-chip {
+  display:flex; align-items:center; gap:8px;
+  background:var(--surf2); border:1px solid var(--border);
+  border-radius:8px; padding:6px 12px;
+  font-family:'JetBrains Mono',monospace; font-size:12px;
+  transition: background .3s, border-color .3s;
+}
+.ex-in { color:var(--muted2); }
+.ex-arrow { color:var(--muted); }
+.ex-out { color:var(--green); }
+
+/* ── EDITOR ── */
+.workspace { flex:1; display:flex; min-height:0; }
+.editor-col {
+  flex:1; display:flex; flex-direction:column; min-width:0;
+  border-right:1px solid var(--border);
+  transition: border-color .3s;
+}
+.editor-topbar {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 16px; background:var(--editor-bg);
+  border-bottom:1px solid var(--border); flex-shrink:0;
+  transition: background .3s, border-color .3s;
+}
+.editor-lang { display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted); font-family:'JetBrains Mono',monospace; }
+.dot { width:8px; height:8px; border-radius:50%; background:var(--yellow); }
+.btn-clear-code {
+  font-size:11px; color:var(--muted); background:none; border:none; cursor:pointer;
+  padding:3px 8px; border-radius:5px; transition:.2s;
+}
+.btn-clear-code:hover { color:var(--red); }
+.font-controls {
+  display:flex; align-items:center; gap:6px;
+  background:var(--surf2); border:1px solid var(--border);
+  border-radius:8px; padding:3px 6px;
+}
+.btn-font {
+  background:none; border:none; cursor:pointer;
+  font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700;
+  color:var(--muted2); padding:2px 6px; border-radius:5px;
+  transition: color .15s, background .15s;
+  line-height:1;
+}
+.btn-font:hover { color:var(--accent); background:rgba(79,142,247,.1); }
+.font-size-label {
+  font-family:'JetBrains Mono',monospace; font-size:11px;
+  color:var(--muted); min-width:30px; text-align:center;
+}
+
+/* ── EDITOR WRAP with line numbers ── */
+.editor-wrap {
+  flex:1; display:flex; min-height:0;
+  background:var(--editor-bg);
+  transition: background .3s;
+  overflow:hidden;
+}
+#line-numbers {
+  flex-shrink:0; width:48px;
+  background:var(--editor-bg);
+  border-right:1px solid var(--border);
+  padding:20px 0;
+  font-family:'JetBrains Mono',monospace; font-size:15px; line-height:1.8;
+  color:var(--muted);
+  text-align:right;
+  user-select:none;
+  overflow:hidden;
+  transition: background .3s, border-color .3s, color .3s;
+}
+#line-numbers span {
+  display:block; padding-right:10px;
+  font-size:13px;
+}
+#codearea {
+  flex:1; resize:none; outline:none; border:none;
+  background:transparent;
+  color:var(--editor-text);
+  caret-color:var(--accent);
+  font-family:'JetBrains Mono',monospace; font-size:15px; line-height:1.8;
+  padding:20px 20px 20px 12px; tab-size:4;
+  overflow:auto;
+  transition: color .3s;
+}
+#codearea::placeholder { color:var(--editor-placeholder); }
+#codearea::selection   { background:rgba(79,142,247,.3); }
+
+.run-bar {
+  display:flex; align-items:center; gap:10px;
+  padding:12px 16px; background:var(--surf); border-top:1px solid var(--border); flex-shrink:0;
+  transition: background .3s, border-color .3s;
+}
+.btn-run {
+  display:flex; align-items:center; gap:8px;
+  background:linear-gradient(135deg,var(--accent),#3a78e8);
+  color:#fff; border:none; cursor:pointer;
+  font-family:'Manrope',sans-serif; font-size:13px; font-weight:700;
+  padding:9px 22px; border-radius:10px;
+  box-shadow:0 4px 16px rgba(79,142,247,.3); transition:.2s;
+}
+.btn-run:hover { transform:translateY(-1px); box-shadow:0 6px 22px rgba(79,142,247,.45); }
+.btn-run:active { transform:translateY(0); }
+.btn-run:disabled { opacity:.5; cursor:not-allowed; transform:none; }
+.btn-hint {
+  background:rgba(155,127,244,.1); color:var(--violet);
+  border:1px solid rgba(155,127,244,.2);
+  cursor:pointer; font-family:'Manrope',sans-serif; font-size:13px; font-weight:600;
+  padding:9px 16px; border-radius:10px; transition:.2s;
+}
+.btn-hint:hover { background:rgba(155,127,244,.18); }
+.run-status { flex:1; font-size:13px; color:var(--muted); }
+.run-status.ok  { color:var(--green); font-weight:600; }
+.run-status.err { color:var(--red);   font-weight:600; }
+
+/* ── TESTS ── */
+.tests-col {
+  width:320px; flex-shrink:0; display:flex; flex-direction:column;
+  background:var(--surf2); transition: background .3s;
+}
+.tests-header {
+  padding:12px 16px; border-bottom:1px solid var(--border);
+  font-size:11px; font-weight:700; color:var(--muted);
+  letter-spacing:.8px; text-transform:uppercase;
+  display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
+  transition: border-color .3s;
+}
+.tests-list { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px; }
+.tc {
+  background:var(--surf); border:1px solid var(--border);
+  border-radius:10px; padding:10px 12px;
+  transition: border-color .3s, background .3s;
+}
+.tc.pass { border-color:rgba(46,204,143,.35); background:rgba(46,204,143,.04); }
+.tc.fail { border-color:rgba(241,107,107,.3); background:rgba(241,107,107,.04); }
+.tc-head { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+.tc-icon { font-size:14px; flex-shrink:0; }
+.tc-num { font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; }
+.tc-rows { font-family:'JetBrains Mono',monospace; font-size:11px; display:flex; flex-direction:column; gap:3px; }
+.tc-row { display:flex; gap:6px; }
+.tc-key { color:var(--muted); min-width:72px; }
+.tc-val { color:var(--muted2); word-break:break-all; }
+.tc-val.got-ok  { color:var(--green); }
+.tc-val.got-err { color:var(--red); }
+
+/* ── HINT MODAL ── */
+.hint-overlay {
+  display:none; position:fixed; inset:0; z-index:100;
+  background:rgba(0,0,0,.6); backdrop-filter:blur(4px);
+  align-items:center; justify-content:center;
+}
+.hint-overlay.show { display:flex; }
+.hint-modal {
+  background:var(--surf); border:1px solid var(--border2);
+  border-radius:18px; padding:28px 32px; max-width:480px; width:90%;
+  box-shadow:0 24px 64px rgba(0,0,0,.5);
+  animation:popIn .25s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes popIn { from{opacity:0;transform:scale(.9)} to{opacity:1;transform:scale(1)} }
+.hint-title { font-size:14px; font-weight:700; color:var(--violet); margin-bottom:12px; }
+.hint-body { font-size:13px; line-height:1.8; color:var(--muted2); }
+.hint-body code {
+  font-family:'JetBrains Mono',monospace; font-size:12px;
+  background:rgba(155,127,244,.12); color:var(--violet);
+  border-radius:4px; padding:1px 6px;
+}
+.hint-close {
+  margin-top:20px; width:100%;
+  background:rgba(155,127,244,.15); color:var(--violet);
+  border:1px solid rgba(155,127,244,.25);
+  cursor:pointer; font-family:'Manrope',sans-serif; font-size:13px; font-weight:700;
+  padding:10px; border-radius:10px; transition:.2s;
+}
+.hint-close:hover { background:rgba(155,127,244,.25); }
+
+.flash {
+  position:fixed; top:24px; left:50%; transform:translateX(-50%);
+  background:rgba(46,204,143,.15); border:1px solid rgba(46,204,143,.4);
+  color:var(--green); font-size:14px; font-weight:700;
+  padding:12px 28px; border-radius:14px;
+  box-shadow:0 8px 32px rgba(46,204,143,.2);
+  z-index:200; pointer-events:none; display:none;
+}
+
+@media (max-width:900px) { .sidebar{display:none} .tests-col{width:240px} }
+@media (max-width:640px) {
+  .workspace{flex-direction:column}
+  .tests-col{width:100%;height:240px;border-right:none;border-top:1px solid var(--border)}
+  .editor-col{border-right:none}
+  .topbar{padding:14px 16px}
+  .desc-panel{padding:20px 16px 16px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">pytrain</div>
+      <div class="score-widget">
+        <div class="score-row">
+          <div class="score-label">Загальний бал</div>
+          <div><span class="score-val" id="scoreVal">0</span><span class="score-max"> / 12</span></div>
+        </div>
+        <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+      </div>
+    </div>
+    <nav class="nav-list" id="navList"></nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="task-badge" id="topBadge">ЗАВДАННЯ 1</div>
+      <div class="task-name"  id="topName">—</div>
+      <div class="pts-badge"  id="topPts">0 / 3 бали</div>
+      <div class="font-controls">
+        <button class="btn-font" onclick="changeUIFont(-1)" title="Зменшити">A−</button>
+        <span class="font-size-label" id="uiFontLabel">100%</span>
+        <button class="btn-font" onclick="changeUIFont(1)" title="Збільшити">A+</button>
+      </div>
+      <button class="btn-theme" onclick="toggleTheme()">
+        <span id="themeIcon">☀️</span><span id="themeLabel">Світла</span>
+      </button>
+    </div>
+
+    <div class="content">
+      <div class="desc-panel">
+        <div class="desc-text" id="descText"></div>
+        <div class="examples"  id="examplesRow"></div>
+      </div>
+      <div class="workspace">
+        <div class="editor-col">
+          <div class="editor-topbar">
+            <div class="editor-lang"><div class="dot"></div>Python 3</div>
+            <button class="btn-clear-code" onclick="clearCode()">✕ Очистити</button>
+          </div>
+          <div class="editor-wrap">
+            <div id="line-numbers"><span>1</span></div>
+            <textarea id="codearea" placeholder="# Напишіть свій код тут..."
+              spellcheck="false" autocomplete="off" autocorrect="off"
+              autocapitalize="off" data-gramm="false"
+              onkeydown="handleKey(event)"
+              oninput="updateLineNumbers()" onscroll="syncLineScroll()"></textarea>
+          </div>
+          <div class="run-bar">
+            <button class="btn-run" id="btnRun" onclick="runCode()">▶ Запустити</button>
+            <button class="btn-hint" onclick="showHint()">💡 Підказка</button>
+            <div class="run-status" id="runStatus"></div>
+          </div>
+        </div>
+        <div class="tests-col">
+          <div class="tests-header">
+            <span>Тести</span>
+            <span id="testsCount" style="color:var(--muted2)">0 / 0</span>
+          </div>
+          <div class="tests-list" id="testsList"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="hint-overlay" id="hintOverlay" onclick="closeHint(event)">
+  <div class="hint-modal">
+    <div class="hint-title">💡 Підказка</div>
+    <div class="hint-body" id="hintBody"></div>
+    <button class="hint-close" onclick="closeHintBtn()">Зрозуміло!</button>
+  </div>
+</div>
+<div class="flash" id="flash"></div>
+
+<script>
+// ══════════════════════════════════════════
+//  TASKS  (4 tasks × 3 points = 12)
+// ══════════════════════════════════════════
+const TASKS = [
+  {
+    title: "Парне / непарне число",
+    desc: `Користувач вводить ціле число з клавіатури (<code>input()</code>).<br>
+Якщо число <b>парне</b> — перевірити, чи воно ділиться на 6.<br>
+Якщо число <b>непарне</b> — перевірити, чи воно кратне трьом.<br><br>
+Вивести відповідне повідомлення.`,
+    hint: `Парне число: остача від ділення на 2 рівна 0 → <code>n % 2 == 0</code><br>
+Ділиться на 6: <code>n % 6 == 0</code><br>
+Кратне 3: <code>n % 3 == 0</code><br><br>
+Структура: зовнішній <code>if / else</code> (парне чи ні), всередині ще один <code>if / else</code>`,
+    examples: [
+      {input:"12", output:"Ділиться на 6"},
+      {input:"8",  output:"Не ділиться на 6"},
+      {input:"9",  output:"Кратне 3"},
+      {input:"7",  output:"Не кратне 3"},
+    ],
+    tests: [
+      {input:"12",  expected:"Ділиться на 6"},
+      {input:"8",   expected:"Не ділиться на 6"},
+      {input:"9",   expected:"Кратне 3"},
+      {input:"7",   expected:"Не кратне 3"},
+      {input:"18",  expected:"Ділиться на 6"},
+      {input:"4",   expected:"Не ділиться на 6"},
+      {input:"15",  expected:"Кратне 3"},
+      {input:"11",  expected:"Не кратне 3"},
+    ],
+  },
+  {
+    title: "Банківський кредит",
+    desc: `Програма визначає, який кредит може отримати клієнт.<br><br>
+1. Ввести <b>вік</b> клієнта.<br>
+2. Якщо вік <b>менше 18</b> → вивести <b>"Ви не можете взяти кредит"</b><br>
+3. Якщо вік <b>≥ 18</b> → ввести <b>місячний прибуток</b> (грн):<br>
+&nbsp;&nbsp;• прибуток &lt; 10 000 → <b>"Ви можете взяти кредит на техніку"</b><br>
+&nbsp;&nbsp;• 10 000 – 30 000 → <b>"Ви можете взяти кредит на автомобіль"</b><br>
+&nbsp;&nbsp;• &gt; 30 000 → <b>"Ви можете взяти житло в іпотеку"</b>`,
+    hint: `Спочатку зчитай вік: <code>age = int(input())</code><br>
+Якщо <code>age >= 18</code> — зчитай прибуток: <code>income = int(input())</code><br>
+Потім вкладені умови <code>if / elif / else</code> для прибутку.<br>
+Якщо менше 18 — одразу вивести повідомлення, прибуток не питати.`,
+    examples: [
+      {input:"15",        output:"Ви не можете взяти кредит"},
+      {input:"25 → 5000", output:"Ви можете взяти кредит на техніку"},
+      {input:"30 → 20000",output:"Ви можете взяти кредит на автомобіль"},
+      {input:"40 → 50000",output:"Ви можете взяти житло в іпотеку"},
+    ],
+    tests: [
+      {input:"15",         expected:"Ви не можете взяти кредит"},
+      {input:"17",         expected:"Ви не можете взяти кредит"},
+      {input:"18\n5000",   expected:"Ви можете взяти кредит на техніку"},
+      {input:"25\n9999",   expected:"Ви можете взяти кредит на техніку"},
+      {input:"30\n10000",  expected:"Ви можете взяти кредит на автомобіль"},
+      {input:"35\n30000",  expected:"Ви можете взяти кредит на автомобіль"},
+      {input:"40\n30001",  expected:"Ви можете взяти житло в іпотеку"},
+      {input:"50\n100000", expected:"Ви можете взяти житло в іпотеку"},
+    ],
+  },
+  {
+    title: "Оцінка за екзамен",
+    desc: `Запитати користувача про його оцінку за екзамен (число 0–100).<br>
+Вивести відповідне повідомлення:<br><br>
+&nbsp;&nbsp;• 90 – 100 → <b>"Відмінно!"</b><br>
+&nbsp;&nbsp;• 75 – 89 &nbsp;→ <b>"Добре"</b><br>
+&nbsp;&nbsp;• 60 – 74 &nbsp;→ <b>"Задовільно"</b><br>
+&nbsp;&nbsp;• менше 60 → <b>"Потрібно покращити"</b>`,
+    hint: `Використовуй <code>if / elif / else</code>.<br>
+Перевіряй від найбільшого до найменшого:<br>
+<code>if grade >= 90:</code><br>
+<code>elif grade >= 75:</code><br>
+<code>elif grade >= 60:</code><br>
+<code>else:</code>`,
+    examples: [
+      {input:"95", output:"Відмінно!"},
+      {input:"80", output:"Добре"},
+      {input:"65", output:"Задовільно"},
+      {input:"45", output:"Потрібно покращити"},
+    ],
+    tests: [
+      {input:"100", expected:"Відмінно!"},
+      {input:"90",  expected:"Відмінно!"},
+      {input:"89",  expected:"Добре"},
+      {input:"75",  expected:"Добре"},
+      {input:"74",  expected:"Задовільно"},
+      {input:"60",  expected:"Задовільно"},
+      {input:"59",  expected:"Потрібно покращити"},
+      {input:"0",   expected:"Потрібно покращити"},
+    ],
+  },
+  {
+    title: "Відмінювання «гривня»",
+    desc: `Ввести кількість гривень (ціле число) і вивести число з правильною формою слова.<br>
+Формат виводу: <b>число слово</b> (наприклад: <b>25 гривень</b>)<br><br>
+Правила:<br>
+&nbsp;&nbsp;• закінчення числа 11–19 → <b>"гривень"</b> (17 гривень, 312 гривень)<br>
+&nbsp;&nbsp;• закінчується на 1 → <b>"гривня"</b> (1 гривня, 131 гривня)<br>
+&nbsp;&nbsp;• закінчується на 2, 3, 4 → <b>"гривні"</b> (32 гривні, 544 гривні)<br>
+&nbsp;&nbsp;• закінчується на 0, 5–9 → <b>"гривень"</b> (67 гривень)`,
+    hint: `Знайди останні дві цифри: <code>last2 = n % 100</code><br>
+Знайди останню цифру: <code>last1 = n % 10</code><br>
+Перевіряй у такому порядку:<br>
+1. <code>if 11 &lt;= last2 &lt;= 19:</code> → гривень<br>
+2. <code>elif last1 == 1:</code> → гривня<br>
+3. <code>elif last1 in (2, 3, 4):</code> → гривні<br>
+4. <code>else:</code> → гривень<br>
+Вивід: <code>print(f"{n} {word}")</code>`,
+    examples: [
+      {input:"1",   output:"1 гривня"},
+      {input:"3",   output:"3 гривні"},
+      {input:"17",  output:"17 гривень"},
+      {input:"25",  output:"25 гривень"},
+      {input:"131", output:"131 гривня"},
+    ],
+    tests: [
+      {input:"1",   expected:"1 гривня"},
+      {input:"21",  expected:"21 гривня"},
+      {input:"3",   expected:"3 гривні"},
+      {input:"44",  expected:"44 гривні"},
+      {input:"11",  expected:"11 гривень"},
+      {input:"17",  expected:"17 гривень"},
+      {input:"25",  expected:"25 гривень"},
+      {input:"312", expected:"312 гривень"},
+      {input:"131", expected:"131 гривня"},
+      {input:"114", expected:"114 гривень"},
+    ],
+  },
+];
+
+const MAX_SCORE = 12;
+const PTS_PER_TASK = 3;
+
+let current = 0;
+const solved = new Array(TASKS.length).fill(false);
+const scores  = new Array(TASKS.length).fill(0);
+
+// ══════════════════════════════════════════
+//  LINE NUMBERS
+// ══════════════════════════════════════════
+let uiScale = 100; // percent
+function changeUIFont(delta) {
+  uiScale = Math.min(150, Math.max(75, uiScale + delta * 10));
+  document.body.style.zoom = uiScale + '%';
+  document.getElementById('uiFontLabel').textContent = uiScale + '%';
+}
+
+
+function updateLineNumbers() {
+  const ta    = document.getElementById('codearea');
+  const ln    = document.getElementById('line-numbers');
+  const count = ta.value.split('\n').length;
+  ln.innerHTML = Array.from({length: count}, (_, i) =>
+    `<span>${i + 1}</span>`
+  ).join('');
+  syncLineScroll();
+}
+
+function syncLineScroll() {
+  const ta = document.getElementById('codearea');
+  const ln = document.getElementById('line-numbers');
+  ln.scrollTop = ta.scrollTop;
+}
+
+// ══════════════════════════════════════════
+//  PYTHON INTERPRETER
+// ══════════════════════════════════════════
+function runPython(code, inputStr) {
+  const inputLines = (inputStr||'').split('\n');
+  let idx = 0;
+  const readInput = () => inputLines[idx++] ?? '';
+  const output = [];
+  try {
+    const js = pyToJs(code);
+    const fn = new Function('print','input','int','float','str','len','abs','round',
+      '"use strict";\n' + js);
+    fn(
+      (...args) => output.push(args.map(v=>v==null?'None':String(v)).join(' ')),
+      readInput,
+      x=>{ const n=parseInt(x,10); if(isNaN(n)) throw new Error(`ValueError: invalid literal for int(): '${x}'`); return n; },
+      x=>{ const n=parseFloat(x); if(isNaN(n)) throw new Error(`ValueError: could not convert to float: '${x}'`); return n; },
+      x=>String(x), x=>x.length, Math.abs,
+      (x,d=0)=>Math.round(x*10**d)/10**d
+    );
+    return {ok:true, output:output.join('\n')};
+  } catch(e) {
+    return {ok:false, error:e.message};
+  }
+}
+
+function pyToJs(src) {
+  const lines = src.split('\n');
+  let i = 0;
+  function block(minInd) {
+    let r = '';
+    while (i < lines.length) {
+      const raw = lines[i];
+      if (raw.trim()===''||raw.trim().startsWith('#')) { i++; r+='\n'; continue; }
+      const ind = raw.match(/^(\s*)/)[1].length;
+      if (ind < minInd) break;
+      const s = raw.trim();
+      const mIf = s.match(/^if\s+(.+):$/);
+      if (mIf) {
+        r+=' '.repeat(ind)+`if(${cond(mIf[1])}){\n`; i++;
+        r+=block(ind+1); r+=' '.repeat(ind)+'}\n';
+        while(i<lines.length){
+          const nxt=lines[i]; if(!nxt) break;
+          const ni=nxt.match(/^(\s*)/)[1].length, ns=nxt.trim();
+          if(ni===ind){
+            const mElif=ns.match(/^elif\s+(.+):$/);
+            if(mElif){ r+=' '.repeat(ind)+`else if(${cond(mElif[1])}){\n`; i++; r+=block(ind+1); r+=' '.repeat(ind)+'}\n'; continue; }
+            if(ns==='else:'){ r+=' '.repeat(ind)+'else{\n'; i++; r+=block(ind+1); r+=' '.repeat(ind)+'}\n'; break; }
+          }
+          break;
+        }
+        continue;
+      }
+      const mPrint=s.match(/^print\((.*)\)$/);
+      if(mPrint){ r+=' '.repeat(ind)+`print(${expr(mPrint[1])});\n`; i++; continue; }
+      const mAug=s.match(/^([a-zA-Z_]\w*)\s*(\+=|-=|\*=|\/=|%=)\s*(.+)$/);
+      if(mAug){ r+=' '.repeat(ind)+`${mAug[1]} ${mAug[2]} ${expr(mAug[3])};\n`; i++; continue; }
+      const mAssign=s.match(/^([a-zA-Z_]\w*)\s*=\s*(.+)$/);
+      if(mAssign&&!s.startsWith('==')){ r+=' '.repeat(ind)+`var ${mAssign[1]} = ${expr(mAssign[2])};\n`; i++; continue; }
+      r+=' '.repeat(ind)+`${expr(s)};\n`; i++;
+    }
+    return r;
+  }
+  return block(0);
+}
+function cond(s) {
+  s=s.trim();
+  s=s.replace(/([\w.]+)\s*([<>]=?|==|!=)\s*([\w.]+)\s*([<>]=?|==|!=)\s*([\w.]+)/g,
+    (_,a,o1,b,o2,c)=>`(${a}${o1}${b}&&${b}${o2}${c})`);
+  s=s.replace(/(\w+)\s+not\s+in\s+\(([^)]+)\)/g,(_,v,it)=>`![${it}].includes(${v})`);
+  s=s.replace(/(\w+)\s+in\s+\(([^)]+)\)/g,(_,v,it)=>`[${it}].includes(${v})`);
+  s=s.replace(/\band\b/g,'&&').replace(/\bor\b/g,'||').replace(/\bnot\b/g,'!');
+  s=s.replace(/\bTrue\b/g,'true').replace(/\bFalse\b/g,'false');
+  return expr(s);
+}
+function expr(s) {
+  if(!s) return s; s=s.trim();
+  s=s.replace(/f"([^"]*)"/g,(_,c)=>'`'+c.replace(/\{([^}]+)\}/g,'${$1}')+'`');
+  s=s.replace(/f'([^']*)'/g,(_,c)=>'`'+c.replace(/\{([^}]+)\}/g,'${$1}')+'`');
+  s=s.replace(/(\w+|\([^)]+\))\s*\*\*\s*(\w+)/g,'Math.pow($1,$2)');
+  s=s.replace(/\bTrue\b/g,'true').replace(/\bFalse\b/g,'false').replace(/\bNone\b/g,'null');
+  return s;
+}
+
+// ══════════════════════════════════════════
+//  UI
+// ══════════════════════════════════════════
+function buildNav() {
+  const nav=document.getElementById('navList'); nav.innerHTML='';
+  TASKS.forEach((t,i)=>{
+    const el=document.createElement('div');
+    el.className='nav-item'+(i===current?' active':'')+(solved[i]?' solved':'');
+    el.onclick=()=>switchTask(i);
+    el.innerHTML=`
+      <div class="nav-num">${i+1}</div>
+      <div class="nav-title">${t.title}</div>
+      <div class="nav-pts ${solved[i]?'solved':''}">${scores[i]}/${PTS_PER_TASK}</div>`;
+    nav.appendChild(el);
+  });
+}
+
+function renderTask(idx) {
+  const t=TASKS[idx];
+  document.getElementById('topBadge').textContent=`ЗАВДАННЯ ${idx+1}`;
+  document.getElementById('topName').textContent=t.title;
+  document.getElementById('topPts').textContent=`${scores[idx]} / ${PTS_PER_TASK} бали`;
+  document.getElementById('descText').innerHTML=t.desc;
+  const ta=document.getElementById('codearea');
+  ta.value='';
+  updateLineNumbers();
+  document.getElementById('runStatus').textContent='';
+  document.getElementById('runStatus').className='run-status';
+  const ex=document.getElementById('examplesRow'); ex.innerHTML='';
+  t.examples.forEach(e=>{
+    const chip=document.createElement('div'); chip.className='example-chip';
+    chip.innerHTML=`<span class="ex-in">Вхід: ${e.input}</span><span class="ex-arrow">→</span><span class="ex-out">${e.output}</span>`;
+    ex.appendChild(chip);
+  });
+  renderTests(idx,[]);
+}
+
+function renderTests(idx, results) {
+  const list=document.getElementById('testsList');
+  const cnt =document.getElementById('testsCount');
+  const tests=TASKS[idx].tests;
+  list.innerHTML=''; let passed=0;
+  tests.forEach((t,ti)=>{
+    const res=results[ti];
+    let cls='', icon='○';
+    if(res){ const ok=res.ok&&res.output.trim()===t.expected.trim(); cls=ok?' pass':' fail'; icon=ok?'✓':'✕'; if(ok)passed++; }
+    const div=document.createElement('div'); div.className='tc'+cls;
+    div.innerHTML=`
+      <div class="tc-head"><div class="tc-icon">${icon}</div><div class="tc-num">ТЕСТ ${ti+1}</div></div>
+      <div class="tc-rows">
+        <div class="tc-row"><span class="tc-key">Вхід:</span><span class="tc-val">${t.input.replace(/\n/g,' → ')}</span></div>
+        <div class="tc-row"><span class="tc-key">Очікується:</span><span class="tc-val">${t.expected}</span></div>
+        ${res?`<div class="tc-row"><span class="tc-key">Отримано:</span><span class="tc-val ${cls.trim()==='pass'?'got-ok':'got-err'}">${res.error||res.output||'—'}</span></div>`:''}
+      </div>`;
+    list.appendChild(div);
+  });
+  cnt.textContent=results.length?`${passed} / ${tests.length}`:`0 / ${tests.length}`;
+}
+
+function switchTask(idx) { current=idx; buildNav(); renderTask(idx); }
+
+function clearCode() {
+  const ta=document.getElementById('codearea'); ta.value='';
+  updateLineNumbers();
+  document.getElementById('runStatus').textContent='';
+  document.getElementById('runStatus').className='run-status';
+  renderTests(current,[]);
+}
+
+function handleKey(e) {
+  const ta=e.target;
+  if(e.key==='Tab'){
+    e.preventDefault();
+    const s=ta.selectionStart, end=ta.selectionEnd;
+    if(s===end){ insertAt(ta,s,'    ',4); }
+    else {
+      const before=ta.value.slice(0,s), sel=ta.value.slice(s,end), after=ta.value.slice(end);
+      const indented=sel.replace(/^/gm,'    ');
+      ta.value=before+indented+after; ta.selectionStart=s; ta.selectionEnd=s+indented.length;
+    }
+    updateLineNumbers(); return;
+  }
+  if(e.key==='Enter'){
+    e.preventDefault();
+    const pos=ta.selectionStart;
+    const textBefore=ta.value.slice(0,pos);
+    const lineStart=textBefore.lastIndexOf('\n')+1;
+    const currentLine=textBefore.slice(lineStart);
+    let indent=currentLine.match(/^(\s*)/)[1];
+    if(currentLine.trimEnd().endsWith(':')) indent+='    ';
+    insertAt(ta,pos,'\n'+indent,1+indent.length);
+    updateLineNumbers(); return;
+  }
+  if(e.key==='Backspace'&&ta.selectionStart===ta.selectionEnd){
+    const pos=ta.selectionStart;
+    const textBefore=ta.value.slice(0,pos);
+    const linePrefix=textBefore.slice(textBefore.lastIndexOf('\n')+1);
+    if(/^ +$/.test(linePrefix)&&linePrefix.length%4===0&&linePrefix.length>0){
+      e.preventDefault();
+      ta.value=ta.value.slice(0,pos-4)+ta.value.slice(pos);
+      ta.selectionStart=ta.selectionEnd=pos-4;
+      updateLineNumbers();
+    }
+  }
+}
+
+function insertAt(ta,pos,text,offset){
+  const before=ta.value.slice(0,pos), after=ta.value.slice(ta.selectionEnd);
+  ta.value=before+text+after; ta.selectionStart=ta.selectionEnd=pos+offset;
+}
+
+function runCode() {
+  const code=document.getElementById('codearea').value.trim();
+  if(!code){ showStatus('Напишіть код перед запуском!','err'); return; }
+  const btn=document.getElementById('btnRun');
+  btn.disabled=true; btn.textContent='⏳ Виконується...';
+  setTimeout(()=>{
+    const task=TASKS[current];
+    const results=task.tests.map(t=>runPython(code,t.input));
+    renderTests(current,results);
+    const passed=results.filter((r,i)=>r.ok&&r.output.trim()===task.tests[i].expected.trim()).length;
+    const total=task.tests.length;
+    if(passed===total){
+      const wasNew=!solved[current];
+      solved[current]=true; scores[current]=PTS_PER_TASK;
+      showStatus(`✓ Всі ${total} тести пройдено! +${PTS_PER_TASK} бали`,'ok');
+      updateScore(); buildNav();
+      document.getElementById('topPts').textContent=`${PTS_PER_TASK} / ${PTS_PER_TASK} бали`;
+      if(wasNew) showFlash(`🎉 Завдання ${current+1} виконано! +${PTS_PER_TASK} бали`);
+    } else {
+      const errMsg=results.find(r=>!r.ok);
+      if(errMsg) showStatus(`✕ Помилка: ${errMsg.error}`,'err');
+      else showStatus(`✕ Пройдено ${passed} з ${total} тестів`,'err');
+    }
+    btn.disabled=false; btn.textContent='▶ Запустити';
+  },80);
+}
+
+function updateScore() {
+  const total=scores.reduce((a,b)=>a+b,0);
+  document.getElementById('scoreVal').textContent=total;
+  document.getElementById('progFill').style.width=(total/MAX_SCORE*100)+'%';
+}
+function showStatus(msg,type){ const el=document.getElementById('runStatus'); el.textContent=msg; el.className='run-status '+type; }
+function showFlash(msg){ const f=document.getElementById('flash'); f.textContent=msg; f.style.display='block'; setTimeout(()=>{f.style.display='none';},2800); }
+function showHint(){ document.getElementById('hintBody').innerHTML=TASKS[current].hint; document.getElementById('hintOverlay').classList.add('show'); }
+function closeHint(e){ if(e.target===document.getElementById('hintOverlay')) document.getElementById('hintOverlay').classList.remove('show'); }
+function closeHintBtn(){ document.getElementById('hintOverlay').classList.remove('show'); }
+
+
+let isLight=false;
+function toggleTheme(){
+  isLight=!isLight;
+  document.documentElement.classList.toggle('light',isLight);
+  document.getElementById('themeIcon').textContent=isLight?'🌙':'☀️';
+  document.getElementById('themeLabel').textContent=isLight?'Темна':'Світла';
+}
+
+buildNav();
+renderTask(0);
+
+// Prevent drag-and-drop into editor
+document.getElementById('codearea').addEventListener('drop', e => e.preventDefault());
+</script>
+</body>
+</html>
