@@ -567,7 +567,7 @@ body {
             spellcheck="false" autocomplete="off" autocorrect="off"
             autocapitalize="off" data-gramm="false"
             onkeydown="handleKey(event)"
-            oninput="updateLineNumbers()"
+            oninput="savedCode[current]=this.value; updateLineNumbers()"
             onscroll="syncLineScroll()"></textarea>
         </div>
         <div class="run-bar">
@@ -755,8 +755,9 @@ const PTS_PER_TASK = 3;
 
 let current     = 0;
 let activePanel = 0; // 0=task, 1=editor, 2=tests
-const solved = new Array(TASKS.length).fill(false);
-const scores  = new Array(TASKS.length).fill(0);
+const solved    = new Array(TASKS.length).fill(false);
+const scores    = new Array(TASKS.length).fill(0);
+const savedCode = new Array(TASKS.length).fill(''); // зберігає код кожного завдання
 
 // ══════════════════════════════════════════════
 //  PANEL NAVIGATION (mobile)
@@ -859,7 +860,7 @@ function renderTask(idx) {
   });
 
   const ta = document.getElementById('codearea');
-  ta.value = '';
+  ta.value = savedCode[idx]; // відновлюємо збережений код (або порожньо якщо новий)
   updateLineNumbers();
   document.getElementById('runStatus').textContent = '';
   document.getElementById('runStatus').className   = 'run-status';
@@ -895,6 +896,8 @@ function renderTests(idx, results) {
 }
 
 function switchTask(idx) {
+  // Зберігаємо поточний код перед переключенням
+  savedCode[current] = document.getElementById('codearea').value;
   current = idx;
   buildTabs();
   buildSideNav();
@@ -964,6 +967,7 @@ function insertAt(ta, pos, text, offset) {
   ta.selectionStart = ta.selectionEnd = pos + offset;
 }
 function clearCode() {
+  savedCode[current] = '';
   document.getElementById('codearea').value = '';
   updateLineNumbers();
   document.getElementById('runStatus').textContent = '';
